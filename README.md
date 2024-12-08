@@ -2,7 +2,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/roothide/Bootstrap?style=social)](https://github.com/roothide/Bootstrap/stargazers)
 
-A full featured bootstrap for iOS 15.0-17.0 A8-A17 & M1+M2 using roothide.
+A full featured bootstrap for iOS 15.0-17.0 A8-A17Pro & M1+M2 using roothide.
 
 ##### *WARNING:* By using this software, you take full responsibility for what you do with it. Any unofficial modifications to your device may cause irreparable damage. Refer to the FAQ linked in the `Usage` section for safe usage of this software.
 
@@ -44,6 +44,8 @@ Tweaks not compiled or converted to roothide will not work out-of-the-box with r
 By design, roothide does not inject tweaks into any applications by default. To enable tweak injection into an application, press `App List` in the Bootstrap app, and enable the toggle of the application you want to inject into. Injection into `com.apple.springboard` or daemons is not possible with the roothide Bootstrap. Refer to the FAQ below on injection into `com.apple.springboard`.
 
 **A roothide Bootstrap FAQ** is available [here](https://github.com/dleovl/Bootstrap/blob/faq/README.md).
+
+**For installing Bootstrap**, refer to the guides at [https://onejailbreak.com/blog/bootstrap-roothide/](https://onejailbreak.com/blog/bootstrap-roothide/)
 
 ## Develop tweaks
 

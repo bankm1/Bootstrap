@@ -8,7 +8,6 @@ body:
         Thanks for using the roothide Bootstap! If your issue can be solved with simple troubleshooting, check out these resources:
         
         [Bootstrap README.md](https://github.com/roothide/Bootstrap/blob/main/README.md)
-        [Bootstrap FAQ](https://github.com/dleovl/Bootstrap/blob/faq/README.md)
         [roothide Discord server](https://discord.gg/ZvY2Yjw8GA) (with support channels)
   - type: input
     id: device-model
@@ -35,11 +34,21 @@ body:
     validations:
       required: true
   - type: input
-    id: serotonin-version
+    id: latest-packages
     attributes:
-      label: Serotonin Version
-      description: What version of Serotonin are you using? (if applicable)
-      placeholder: ex. 1.0.1
+      label: Packages Updated
+      description: Have you updated all packages to the latest version in Sileo?
+      placeholder: Yes or No
+    validations:
+      required: true
+  - type: input
+    id: disable-injection
+    attributes:
+      label: Disable Injection
+      description: Have you tried disabling tweak injection in the Settings of Bootstrap then rebooting userspace?
+      placeholder: Yes or No
+    validations:
+      required: true
   - type: textarea
     id: bugs
     attributes:

@@ -121,7 +121,18 @@
         return YES;
     }
     
-    if(!isDefaultInstallationPath(app.bundleURL.path)) {
+    if(launchd_exploit_available())
+    {
+        if([app.bundleURL.path hasPrefix:@"/Applications/"] && [NSFileManager.defaultManager fileExistsAtPath:jbroot(app.bundleURL.path)]) {
+            return YES;
+        }
+        
+        if([NSFileManager.defaultManager fileExistsAtPath:jbroot([@"/.sysroot/" stringByAppendingString:app.bundleURL.path])]) {
+            return YES;
+        }
+    }
+    
+    if(!isRemovableBundlePath(app.bundleURL.path.fileSystemRepresentation)) {
         return NO;
     }
     
@@ -147,7 +158,7 @@
     
 //        if(app.isHiddenApp) continue;
                 
-        if(![app.bundleURL.path hasPrefix:@"/Applications/"] && !isDefaultInstallationPath(app.bundleURL.path)) {
+        if(![app.bundleURL.path hasPrefix:@"/Applications/"] && !isRemovableBundlePath(app.bundleURL.path.fileSystemRepresentation)) {
             //sysapp installed as jailbreak apps
             NSString* sysPath = [@"/Applications/" stringByAppendingPathComponent:app.bundleURL.path.lastPathComponent];
             if(![NSFileManager.defaultManager fileExistsAtPath:sysPath])
@@ -161,7 +172,7 @@
         }
         
         if([NSFileManager.defaultManager fileExistsAtPath:
-            [app.bundleURL.path stringByAppendingString:@"/.TrollStorePresistenceHelper"]])
+            [app.bundleURL.path stringByAppendingString:@"/.TrollStorePersistenceHelper"]])
                 continue;
         
         if([NSFileManager.defaultManager fileExistsAtPath:
@@ -187,13 +198,19 @@
 
             BOOL enabled1 = [self tweakEnabled:app1];
             BOOL enabled2 = [self tweakEnabled:app2];
+            BOOL isApple1 = [app1.bundleIdentifier hasPrefix:@"com.apple."];
+            BOOL isApple2 = [app2.bundleIdentifier hasPrefix:@"com.apple."];
             
-            if((enabled1&&!enabled2) || (!enabled1&&enabled2)) {
+            if(enabled1 != enabled2) {
                 return [@(enabled2) compare:@(enabled1)];
             }
             
-            if(app1.isHiddenApp || app2.isHiddenApp) {
-                return (enabled1&&enabled2) ? [@(app2.isHiddenApp) compare:@(app1.isHiddenApp)] : [@(app1.isHiddenApp) compare:@(app2.isHiddenApp)];
+            if(app1.isHiddenApp != app2.isHiddenApp) {
+                return [@(app1.isHiddenApp) compare:@(app2.isHiddenApp)];
+            }
+            
+            if(isApple1 != isApple2) {
+                return [@(isApple1) compare:@(isApple2)];
             }
             
             return [app1.name localizedStandardCompare:app2.name];
@@ -314,28 +331,55 @@ NSArray* unsupportedBundleIDs = @[
     UISwitch *switchInCell = (UISwitch *)sender;
     CGPoint pos = [switchInCell convertPoint:switchInCell.bounds.origin toView:self.tableView];
     NSIndexPath *indexPath = [self.tableView indexPathForRowAtPoint:pos];
-    BOOL enabled = switchInCell.on;
+    
     AppInfo* app = isFiltered? filteredApps[indexPath.row] : appsArray[indexPath.row];
+    
+    BOOL enabled = switchInCell.on;
+    
+    if(enabled && isBlacklistedApp(app.bundleIdentifier.UTF8String)) {
+        [AppDelegate showMesage:Localized(@"This app is blacklisted by RootHide Manager, please unblacklist it first.") title:@""];
+        [switchInCell setOn:NO];
+        return;
+    }
+    
+    if(![NSFileManager.defaultManager fileExistsAtPath:app.bundleURL.path]) {
+        NSString* msg = [NSString stringWithFormat:@"%@\n\n%@",
+                         Localized(@"App bundle does not exist, try Bootstrap->[settings]->[rebuild icon cache] to fix it."),
+                         app.bundleURL.path];
+        [AppDelegate showMesage:msg title:Localized(@"Error")];
+        [switchInCell setOn:!enabled];
+        return;
+    }
+    
+    if([app.bundleURL.path hasPrefix:@"/Applications/"])
+    {
+        NSString* resignedBundlePath = [jbroot(@"/.sysroot") stringByAppendingPathComponent:app.bundleURL.path];
+        if([NSFileManager.defaultManager fileExistsAtPath:resignedBundlePath])
+        {
+            NSString* InfoPlistPath = [resignedBundlePath stringByAppendingPathComponent:@"Info.plist"];
+            
+            struct stat st={0};
+            if(lstat(InfoPlistPath.fileSystemRepresentation, &st)!=0 || S_ISLNK(st.st_mode)) {
+                [AppDelegate showMesage:Localized(@"This app's injection is hosted by Bootstrap now, you don't have to deal with it.") title:@""];
+                [switchInCell setOn:!enabled];
+                return;
+            }
+        }
+    }
 
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
         [AppDelegate showHudMsg:Localized(@"Applying")];
         
-        killAllForBundle(app.bundleURL.path.UTF8String);
+        killAllForBundle(app.bundleURL.path.fileSystemRepresentation);
         
-        int status;
         NSString* log=nil;
         NSString* err=nil;
-        if(enabled) {
-            status = spawnRoot(NSBundle.mainBundle.executablePath, @[@"enableapp",app.bundleURL.path], &log, &err);
-        } else {
-            status = spawnRoot(NSBundle.mainBundle.executablePath, @[@"disableapp",app.bundleURL.path], &log, &err);
-        }
-        
+        int status = spawn_root(NSBundle.mainBundle.executablePath, @[enabled ? @"enableapp" : @"disableapp",app.bundleURL.path], &log, &err);
         if(status != 0) {
             [AppDelegate showMesage:[NSString stringWithFormat:@"%@\nstderr:\n%@",log,err] title:[NSString stringWithFormat:@"error(%d)",status]];
         }
         
-        killAllForBundle(app.bundleURL.path.UTF8String);
+        killAllForBundle(app.bundleURL.path.fileSystemRepresentation);
         
         //refresh app cache list
         [self updateData:NO];
